@@ -50,13 +50,13 @@
     }
 
     .app {
-      width: min(920px, 100%);
+      width: min(760px, 100%);
       background: var(--panel);
       border: 1px solid var(--panel-border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       backdrop-filter: blur(12px);
-      padding: 28px;
+      padding: 24px;
     }
 
     .eyebrow {
@@ -77,7 +77,8 @@
 
     .intro {
       margin: 10px 0 0;
-      max-width: 58ch;
+      max-width: 54ch;
+      font-size: 0.98rem;
       color: var(--muted);
       line-height: 1.6;
     }
@@ -213,19 +214,23 @@
 
     .reading-card {
       margin-top: 24px;
-      padding: clamp(22px, 3vw, 34px);
+      max-width: 700px;
+      margin-inline: auto;
+      padding: 28px;
       border-radius: calc(var(--radius) - 6px);
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 243, 232, 0.94));
       border: 1px solid rgba(88, 60, 23, 0.09);
+      box-shadow: 0 16px 34px rgba(63, 40, 7, 0.08);
     }
 
     .reading-text {
       margin: 0;
       font-family: var(--font-reading);
-      font-size: clamp(1.42rem, 1vw + 1.16rem, 1.78rem);
-      line-height: 1.95;
+      font-size: clamp(1.18rem, 0.3vw + 1.1rem, 1.5rem);
+      line-height: 1.78;
       letter-spacing: 0.01em;
       text-wrap: pretty;
+      overflow-wrap: break-word;
     }
 
     .word {
@@ -249,6 +254,8 @@
 
     .note {
       margin-top: 16px;
+      max-width: 700px;
+      margin-inline: auto;
       color: var(--muted);
       font-size: 0.92rem;
       line-height: 1.55;
@@ -356,6 +363,7 @@ I think this holiday will be very memorable, not because of traveling, but becau
       totalPausedMs: 0,
       isPaused: false,
       boundarySeen: false,
+      userPickedVoice: false,
       status: "Ready"
     };
 
@@ -364,6 +372,7 @@ I think this holiday will be very memorable, not because of traveling, but becau
       let match;
       wordPattern.lastIndex = 0;
 
+      // Keep words separate from punctuation so the paragraph still renders as one natural block.
       while ((match = wordPattern.exec(text)) !== null) {
         words.push({
           text: match[0],
@@ -523,6 +532,7 @@ I think this holiday will be very memorable, not because of traveling, but becau
       const schedule = buildFallbackSchedule();
       clearFallbackTimer();
 
+      // Some voices do not emit reliable boundary events, so a lightweight timer keeps the highlight moving.
       state.fallbackTimerId = window.setInterval(() => {
         if (playbackToken !== state.playbackToken || state.isPaused) {
           return;
@@ -542,6 +552,53 @@ I think this holiday will be very memorable, not because of traveling, but becau
 
         updateHighlight(nextIndex);
       }, 60);
+    }
+
+    function scoreVoice(voice) {
+      const name = (voice.name || "").toLowerCase();
+      const lang = (voice.lang || "").toLowerCase();
+      let score = 0;
+
+      if (/^en(-|_)/.test(lang)) {
+        score += 1000;
+      }
+
+      if (lang === "en-us") {
+        score += 80;
+      } else if (lang === "en-gb") {
+        score += 60;
+      }
+
+      if (/female|woman|girl|samantha|victoria|zira|hazel|aria|ava|emma|jenny|libby|sonia|susan|michelle|linda|karen|moira/.test(name)) {
+        score += 260;
+      }
+
+      if (/natural/.test(name)) {
+        score += 90;
+      }
+
+      if (/online/.test(name)) {
+        score += 40;
+      }
+
+      if (/male|man|boy|david|mark|guy|george|james|ryan/.test(name)) {
+        score -= 180;
+      }
+
+      if (voice.default) {
+        score += 20;
+      }
+
+      return score;
+    }
+
+    function getPreferredVoice(voices) {
+      const englishVoices = voices.filter((voice) => /^en(-|_)/i.test(voice.lang));
+      if (!englishVoices.length) {
+        return null;
+      }
+
+      return englishVoices.slice().sort((left, right) => scoreVoice(right) - scoreVoice(left))[0];
     }
 
     function teardownSpeech(cancelSpeech) {
@@ -710,6 +767,7 @@ I think this holiday will be very memorable, not because of traveling, but becau
       }
 
       const previousValue = voiceSelect.value;
+      const hadSelection = state.voices.some((voice) => voice.voiceURI === previousValue);
       state.voices = speechSynthesis.getVoices().slice().sort((left, right) => {
         const leftLabel = `${left.lang} ${left.name}`;
         const rightLabel = `${right.lang} ${right.name}`;
@@ -729,10 +787,14 @@ I think this holiday will be very memorable, not because of traveling, but becau
         voiceSelect.append(option);
       });
 
-      const preferredVoice = state.voices.find((voice) => /^en(-|_)/i.test(voice.lang));
-      voiceSelect.value = state.voices.some((voice) => voice.voiceURI === previousValue)
-        ? previousValue
-        : (preferredVoice ? preferredVoice.voiceURI : "");
+      const preferredVoice = getPreferredVoice(state.voices);
+
+      if (state.voices.some((voice) => voice.voiceURI === previousValue) && (hadSelection || state.userPickedVoice)) {
+        voiceSelect.value = previousValue;
+        return;
+      }
+
+      voiceSelect.value = preferredVoice ? preferredVoice.voiceURI : previousValue;
     }
 
     function init() {
@@ -753,6 +815,9 @@ I think this holiday will be very memorable, not because of traveling, but becau
       pauseButton.addEventListener("click", pausePlayback);
       resumeButton.addEventListener("click", resumePlayback);
       stopButton.addEventListener("click", stopPlayback);
+      voiceSelect.addEventListener("change", () => {
+        state.userPickedVoice = true;
+      });
       window.addEventListener("beforeunload", () => {
         if ("speechSynthesis" in window) {
           speechSynthesis.cancel();
