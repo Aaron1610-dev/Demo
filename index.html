@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>English Reading Practice</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6efe4;
+      --panel: rgba(255, 251, 245, 0.88);
+      --panel-border: rgba(88, 60, 23, 0.14);
+      --text: #2b2116;
+      --muted: #715c44;
+      --accent: #ffcc55;
+      --accent-shadow: rgba(181, 120, 0, 0.24);
+      --spoken: rgba(202, 146, 34, 0.15);
+      --button: #2f5d50;
+      --button-hover: #264c42;
+      --button-muted: #ece2d3;
+      --button-muted-text: #4b3c2a;
+      --button-disabled: #cdbfaa;
+      --status: #fff8ed;
+      --shadow: 0 24px 60px rgba(63, 40, 7, 0.12);
+      --radius: 24px;
+      --font-ui: "Avenir Next", "Segoe UI", sans-serif;
+      --font-reading: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-ui);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 222, 173, 0.7), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(203, 228, 214, 0.7), transparent 32%),
+        linear-gradient(180deg, #f9f4ec 0%, var(--bg) 100%);
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px 18px;
+    }
+
+    .app {
+      width: min(920px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      padding: 28px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.85rem, 2vw + 1.2rem, 2.6rem);
+      line-height: 1.1;
+      font-weight: 700;
+    }
+
+    .intro {
+      margin: 10px 0 0;
+      max-width: 58ch;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .toolbar {
+      margin-top: 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .control-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button,
+    select {
+      font: inherit;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      transition: transform 120ms ease, background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    }
+
+    button {
+      padding: 11px 18px;
+      background: var(--button);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(47, 93, 80, 0.18);
+    }
+
+    button.secondary {
+      background: var(--button-muted);
+      color: var(--button-muted-text);
+      box-shadow: none;
+      border-color: rgba(75, 60, 42, 0.08);
+    }
+
+    button:hover:not(:disabled),
+    button:focus-visible:not(:disabled) {
+      background: var(--button-hover);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    button.secondary:hover:not(:disabled),
+    button.secondary:focus-visible:not(:disabled) {
+      background: #dfd1bc;
+    }
+
+    button:disabled {
+      background: var(--button-disabled);
+      color: rgba(43, 33, 22, 0.62);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .field {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: rgba(255, 248, 237, 0.82);
+      border: 1px solid rgba(88, 60, 23, 0.08);
+      border-radius: 18px;
+    }
+
+    .field label {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    select {
+      min-width: 150px;
+      padding: 9px 12px;
+      background: #fff;
+      border-color: rgba(88, 60, 23, 0.12);
+      color: var(--text);
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: var(--status);
+      border: 1px solid rgba(88, 60, 23, 0.08);
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #b6986f;
+      transition: background-color 140ms ease;
+    }
+
+    .status-label[data-state="Playing"] .status-dot {
+      background: #3e9f66;
+    }
+
+    .status-label[data-state="Paused"] .status-dot {
+      background: #dc9b2f;
+    }
+
+    .status-label[data-state="Finished"] .status-dot {
+      background: #5476bc;
+    }
+
+    .status-label[data-state="Unavailable"] .status-dot {
+      background: #b34d4d;
+    }
+
+    .reading-card {
+      margin-top: 24px;
+      padding: clamp(22px, 3vw, 34px);
+      border-radius: calc(var(--radius) - 6px);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 243, 232, 0.94));
+      border: 1px solid rgba(88, 60, 23, 0.09);
+    }
+
+    .reading-text {
+      margin: 0;
+      font-family: var(--font-reading);
+      font-size: clamp(1.42rem, 1vw + 1.16rem, 1.78rem);
+      line-height: 1.95;
+      letter-spacing: 0.01em;
+      text-wrap: pretty;
+    }
+
+    .word {
+      padding: 0.04em 0.14em;
+      border-radius: 0.48em;
+      transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
+    }
+
+    .word.is-spoken {
+      background: var(--spoken);
+      color: rgba(43, 33, 22, 0.76);
+    }
+
+    .word.is-active {
+      background: var(--accent);
+      color: #2d1d00;
+      box-shadow: 0 10px 18px var(--accent-shadow);
+    }
+
+    .note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        padding: 20px;
+      }
+
+      .field {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      select {
+        min-width: 0;
+        width: 58%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <main class="app">
+      <p class="eyebrow">Local Practice</p>
+      <h1>English Reading Practice</h1>
+      <p class="intro">Read the paragraph as one continuous block and follow the current word as the browser speaks it aloud.</p>
+
+      <section class="toolbar" aria-label="Playback controls">
+        <div class="control-row">
+          <div class="button-group">
+            <button id="playButton" type="button">Play</button>
+            <button id="pauseButton" class="secondary" type="button">Pause</button>
+            <button id="resumeButton" class="secondary" type="button">Resume</button>
+            <button id="stopButton" class="secondary" type="button">Stop</button>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="field">
+            <label for="voiceSelect">Voice</label>
+            <select id="voiceSelect" aria-label="Voice selector"></select>
+          </div>
+
+          <div class="field">
+            <label for="speedSelect">Speed</label>
+            <select id="speedSelect" aria-label="Speed selector">
+              <option value="0.8">0.8x</option>
+              <option value="0.95">0.95x</option>
+              <option value="1" selected>1.0x</option>
+              <option value="1.15">1.15x</option>
+              <option value="1.3">1.3x</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="status-row">
+          <div id="statusLabel" class="status-label" data-state="Ready">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="statusText">Ready</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="reading-card" aria-label="Reading text">
+        <p id="readingText" class="reading-text"></p>
+      </section>
+
+      <p class="note">Best results are in current Chrome or Edge. Exact word boundary timing depends on the selected voice and browser implementation.</p>
+    </main>
+  </div>
+
+  <script>
+    const DEFAULT_TEXT = `"I am a person who both works and studies, so I don’t have much time for my family. That’s why the upcoming 30/4 holiday is very special to me. During this holiday, I plan to spend all my time with my family.
+I don’t plan to travel far. Instead, I want to stay at home and be with my family. I will cook for them because I really enjoy cooking, but I don’t usually have time to do it. The dish I want to cook is bun bo, which is my favorite food and my family also loves it.
+I will prepare the ingredients, cook the meal, and enjoy it together with my family. For me, simple moments like this are very meaningful because they help me feel closer to my family and make up for my busy time before.
+I think this holiday will be very memorable, not because of traveling, but because I can be with my loved ones and create warm memories together."`;
+
+    const normalizedText = DEFAULT_TEXT.replace(/\s+/g, " ").trim();
+    const wordPattern = /[\p{L}\p{N}]+(?:[’'][\p{L}\p{N}]+|\/[\p{L}\p{N}]+)*/gu;
+
+    const readingText = document.getElementById("readingText");
+    const playButton = document.getElementById("playButton");
+    const pauseButton = document.getElementById("pauseButton");
+    const resumeButton = document.getElementById("resumeButton");
+    const stopButton = document.getElementById("stopButton");
+    const voiceSelect = document.getElementById("voiceSelect");
+    const speedSelect = document.getElementById("speedSelect");
+    const statusLabel = document.getElementById("statusLabel");
+    const statusText = document.getElementById("statusText");
+
+    const state = {
+      words: [],
+      wordStarts: [],
+      wordSpans: [],
+      voices: [],
+      utterance: null,
+      currentWordIndex: -1,
+      playbackToken: 0,
+      fallbackTimerId: 0,
+      playbackStartedAt: 0,
+      lastBoundaryAt: 0,
+      pausedAt: 0,
+      totalPausedMs: 0,
+      isPaused: false,
+      boundarySeen: false,
+      status: "Ready"
+    };
+
+    function tokenizeWords(text) {
+      const words = [];
+      let match;
+      wordPattern.lastIndex = 0;
+
+      while ((match = wordPattern.exec(text)) !== null) {
+        words.push({
+          text: match[0],
+          start: match.index,
+          end: wordPattern.lastIndex,
+          afterText: ""
+        });
+      }
+
+      for (let index = 0; index < words.length; index += 1) {
+        const nextWord = words[index + 1];
+        words[index].afterText = text.slice(words[index].end, nextWord ? nextWord.start : text.length);
+      }
+
+      return words;
+    }
+
+    function renderParagraph(text) {
+      state.words = tokenizeWords(text);
+      state.wordStarts = state.words.map((word) => word.start);
+      state.wordSpans = [];
+
+      readingText.textContent = "";
+      const fragment = document.createDocumentFragment();
+      let cursor = 0;
+
+      state.words.forEach((word, index) => {
+        if (cursor < word.start) {
+          fragment.append(document.createTextNode(text.slice(cursor, word.start)));
+        }
+
+        const span = document.createElement("span");
+        span.className = "word";
+        span.textContent = word.text;
+        span.dataset.index = String(index);
+        fragment.append(span);
+        state.wordSpans.push(span);
+        cursor = word.end;
+      });
+
+      if (cursor < text.length) {
+        fragment.append(document.createTextNode(text.slice(cursor)));
+      }
+
+      readingText.append(fragment);
+      resetHighlights();
+    }
+
+    function setStatus(status) {
+      state.status = status;
+      statusLabel.dataset.state = status;
+      statusText.textContent = status;
+      syncButtonState();
+    }
+
+    function syncButtonState() {
+      const unsupported = !("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window);
+      const isSpeaking = window.speechSynthesis && speechSynthesis.speaking;
+
+      playButton.disabled = unsupported;
+      pauseButton.disabled = unsupported || !isSpeaking || state.isPaused;
+      resumeButton.disabled = unsupported || !state.isPaused;
+      stopButton.disabled = unsupported || (!isSpeaking && !state.isPaused);
+      voiceSelect.disabled = unsupported;
+      speedSelect.disabled = unsupported;
+    }
+
+    function resetHighlights() {
+      state.currentWordIndex = -1;
+      state.wordSpans.forEach((span) => {
+        span.classList.remove("is-active", "is-spoken");
+      });
+      syncButtonState();
+    }
+
+    function updateHighlight(wordIndex) {
+      if (!state.wordSpans.length) {
+        return;
+      }
+
+      const boundedIndex = Math.max(0, Math.min(wordIndex, state.wordSpans.length - 1));
+      if (boundedIndex === state.currentWordIndex || boundedIndex < 0 || boundedIndex < state.currentWordIndex) {
+        return;
+      }
+
+      state.wordSpans.forEach((span, index) => {
+        span.classList.toggle("is-spoken", index < boundedIndex);
+        span.classList.toggle("is-active", index === boundedIndex);
+      });
+
+      state.currentWordIndex = boundedIndex;
+      syncButtonState();
+    }
+
+    function clearFallbackTimer() {
+      if (state.fallbackTimerId) {
+        window.clearInterval(state.fallbackTimerId);
+        state.fallbackTimerId = 0;
+      }
+    }
+
+    function getSpeechElapsedMs() {
+      if (!state.playbackStartedAt) {
+        return 0;
+      }
+
+      if (state.isPaused && state.pausedAt) {
+        return state.pausedAt - state.playbackStartedAt - state.totalPausedMs;
+      }
+
+      return Date.now() - state.playbackStartedAt - state.totalPausedMs;
+    }
+
+    function punctuationPause(separatorText) {
+      if (/[.!?]/.test(separatorText)) {
+        return 230;
+      }
+
+      if (/[,;:]/.test(separatorText)) {
+        return 120;
+      }
+
+      return 35;
+    }
+
+    function buildFallbackSchedule() {
+      const rate = Number(speedSelect.value) || 1;
+      const baseWordMs = 60000 / (170 * rate);
+      let elapsed = 0;
+
+      return state.words.map((word) => {
+        const lengthWeight = Math.min(1.4, Math.max(0.82, word.text.length / 5));
+        elapsed += (baseWordMs * lengthWeight) + punctuationPause(word.afterText);
+        return elapsed;
+      });
+    }
+
+    function findWordIndexByChar(charIndex) {
+      if (!state.wordStarts.length) {
+        return -1;
+      }
+
+      if (charIndex <= state.wordStarts[0]) {
+        return 0;
+      }
+
+      for (let index = state.wordStarts.length - 1; index >= 0; index -= 1) {
+        if (charIndex >= state.wordStarts[index]) {
+          return index;
+        }
+      }
+
+      return 0;
+    }
+
+    function startFallbackTracking(playbackToken) {
+      const schedule = buildFallbackSchedule();
+      clearFallbackTimer();
+
+      state.fallbackTimerId = window.setInterval(() => {
+        if (playbackToken !== state.playbackToken || state.isPaused) {
+          return;
+        }
+
+        if (state.boundarySeen && (Date.now() - state.lastBoundaryAt) < 320) {
+          return;
+        }
+
+        const elapsed = getSpeechElapsedMs();
+        const nextIndex = schedule.findIndex((endMs) => elapsed < endMs);
+
+        if (nextIndex === -1) {
+          updateHighlight(state.wordSpans.length - 1);
+          return;
+        }
+
+        updateHighlight(nextIndex);
+      }, 60);
+    }
+
+    function teardownSpeech(cancelSpeech) {
+      clearFallbackTimer();
+      state.utterance = null;
+      state.boundarySeen = false;
+      state.playbackStartedAt = 0;
+      state.lastBoundaryAt = 0;
+      state.pausedAt = 0;
+      state.totalPausedMs = 0;
+      state.isPaused = false;
+
+      if (cancelSpeech && "speechSynthesis" in window) {
+        speechSynthesis.cancel();
+      }
+    }
+
+    function finishPlayback(status) {
+      clearFallbackTimer();
+      state.utterance = null;
+      state.playbackStartedAt = 0;
+      state.lastBoundaryAt = 0;
+      state.pausedAt = 0;
+      state.totalPausedMs = 0;
+      state.isPaused = false;
+      state.boundarySeen = false;
+
+      if (status === "Finished" && state.wordSpans.length) {
+        state.wordSpans.forEach((span) => {
+          span.classList.remove("is-active");
+          span.classList.add("is-spoken");
+        });
+        state.currentWordIndex = state.wordSpans.length - 1;
+      } else {
+        resetHighlights();
+      }
+
+      setStatus(status);
+    }
+
+    function playFromStart() {
+      if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+        setStatus("Unavailable");
+        return;
+      }
+
+      state.playbackToken += 1;
+      const playbackToken = state.playbackToken;
+
+      teardownSpeech(true);
+      resetHighlights();
+
+      const utterance = new SpeechSynthesisUtterance(normalizedText);
+      const selectedVoice = state.voices.find((voice) => voice.voiceURI === voiceSelect.value);
+
+      utterance.voice = selectedVoice || null;
+      utterance.lang = selectedVoice ? selectedVoice.lang : "en-US";
+      utterance.rate = Number(speedSelect.value) || 1;
+      utterance.pitch = 1;
+
+      utterance.onstart = () => {
+        if (playbackToken !== state.playbackToken) {
+          return;
+        }
+
+        state.playbackStartedAt = Date.now();
+        state.totalPausedMs = 0;
+        state.pausedAt = 0;
+        state.isPaused = false;
+        updateHighlight(0);
+        setStatus("Playing");
+        startFallbackTracking(playbackToken);
+      };
+
+      utterance.onboundary = (event) => {
+        if (playbackToken !== state.playbackToken || typeof event.charIndex !== "number") {
+          return;
+        }
+
+        state.boundarySeen = true;
+        state.lastBoundaryAt = Date.now();
+        updateHighlight(findWordIndexByChar(event.charIndex));
+      };
+
+      utterance.onpause = () => {
+        if (playbackToken !== state.playbackToken) {
+          return;
+        }
+
+        state.isPaused = true;
+        state.pausedAt = Date.now();
+        setStatus("Paused");
+      };
+
+      utterance.onresume = () => {
+        if (playbackToken !== state.playbackToken) {
+          return;
+        }
+
+        if (state.pausedAt) {
+          state.totalPausedMs += Date.now() - state.pausedAt;
+        }
+
+        state.pausedAt = 0;
+        state.isPaused = false;
+        setStatus("Playing");
+      };
+
+      utterance.onend = () => {
+        if (playbackToken !== state.playbackToken) {
+          return;
+        }
+
+        finishPlayback("Finished");
+      };
+
+      utterance.onerror = (event) => {
+        if (playbackToken !== state.playbackToken) {
+          return;
+        }
+
+        if (event.error === "interrupted" || event.error === "canceled") {
+          finishPlayback("Ready");
+          return;
+        }
+
+        finishPlayback("Ready");
+      };
+
+      state.utterance = utterance;
+      speechSynthesis.speak(utterance);
+    }
+
+    function pausePlayback() {
+      if (!("speechSynthesis" in window) || !speechSynthesis.speaking || state.isPaused) {
+        return;
+      }
+
+      speechSynthesis.pause();
+      state.isPaused = true;
+      state.pausedAt = Date.now();
+      setStatus("Paused");
+    }
+
+    function resumePlayback() {
+      if (!("speechSynthesis" in window) || !state.isPaused) {
+        return;
+      }
+
+      speechSynthesis.resume();
+    }
+
+    function stopPlayback() {
+      if (!("speechSynthesis" in window)) {
+        return;
+      }
+
+      state.playbackToken += 1;
+      teardownSpeech(true);
+      finishPlayback("Ready");
+    }
+
+    function populateVoices() {
+      if (!("speechSynthesis" in window)) {
+        return;
+      }
+
+      const previousValue = voiceSelect.value;
+      state.voices = speechSynthesis.getVoices().slice().sort((left, right) => {
+        const leftLabel = `${left.lang} ${left.name}`;
+        const rightLabel = `${right.lang} ${right.name}`;
+        return leftLabel.localeCompare(rightLabel);
+      });
+
+      voiceSelect.textContent = "";
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Default browser voice";
+      voiceSelect.append(placeholder);
+
+      state.voices.forEach((voice) => {
+        const option = document.createElement("option");
+        option.value = voice.voiceURI;
+        option.textContent = `${voice.name} (${voice.lang})`;
+        voiceSelect.append(option);
+      });
+
+      const preferredVoice = state.voices.find((voice) => /^en(-|_)/i.test(voice.lang));
+      voiceSelect.value = state.voices.some((voice) => voice.voiceURI === previousValue)
+        ? previousValue
+        : (preferredVoice ? preferredVoice.voiceURI : "");
+    }
+
+    function init() {
+      renderParagraph(normalizedText);
+
+      if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+        setStatus("Unavailable");
+        syncButtonState();
+        return;
+      }
+
+      populateVoices();
+      if ("onvoiceschanged" in speechSynthesis) {
+        speechSynthesis.onvoiceschanged = populateVoices;
+      }
+
+      playButton.addEventListener("click", playFromStart);
+      pauseButton.addEventListener("click", pausePlayback);
+      resumeButton.addEventListener("click", resumePlayback);
+      stopButton.addEventListener("click", stopPlayback);
+      window.addEventListener("beforeunload", () => {
+        if ("speechSynthesis" in window) {
+          speechSynthesis.cancel();
+        }
+      });
+
+      syncButtonState();
+    }
+
+    init();
+  </script>
+</body>
+</html>
